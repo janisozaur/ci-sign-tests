@@ -1,0 +1,70 @@
+name: CI
+on: [push, pull_request]
+env:
+  VCPKG_COMMIT_HASH: 68d349964cb4e8da561fd849d9491e6ba11c5681
+jobs:
+  createrelease:
+    name: createrelease
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Get the version
+        id: get_version
+        run: echo "version=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
+      - name: Create release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ env.version }}
+          name: Release v${{ env.version }}
+          prerelease: false
+      - name: Output Release URL File
+        run: echo "${{ steps.create_release.outputs.upload_url }}" > release_url.txt
+      - name: Save Release URL File for publish
+        uses: actions/upload-artifact@v4
+        with:
+          name: release_url
+          path: release_url.txt
+  macos-build:
+    name: macOS
+    runs-on: macos-12
+    if: always()
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - triplet: x64-osx
+    steps:
+      # needed for vcpkg.json
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Get the version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: echo "version=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
+      - name: Install prerequisites
+        shell: bash
+        run: |
+          brew install automake autoconf-archive
+      - uses: lukka/get-cmake@latest
+      - name: Install vcpkg and packages
+        uses: lukka/run-vcpkg@v11
+        id: runvcpkg
+        env:
+          VCPKG_DEFAULT_TRIPLET: ${{ matrix.triplet }}
+          VCPKG_INSTALLED_DIR: ${{ github.workspace }}/vcpkg/installed/${{ matrix.triplet }}
+        with:
+          vcpkgGitCommitId: '${{ env.VCPKG_COMMIT_HASH }}'
+          runVcpkgInstall: true
+      - name: Zip stuff
+        run: |
+          pushd ${{ github.workspace }}/vcpkg/installed/${{ matrix.triplet }}
+          zip -rXy ../openrct2-libs-v${{ env.version }}-${{ matrix.triplet }}-macos-dylibs.zip * -x '*/.*'
+      - name: Upload zip as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openrct2-libs-v${{ env.version }}-${{ matrix.triplet }}-macos-dylibs.zip
+          path: ${{ github.workspace }}/vcpkg/installed/openrct2-libs-v${{ env.version }}-${{ matrix.triplet }}-macos-dylibs.zip
