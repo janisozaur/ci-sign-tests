@@ -37,7 +37,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - triplet: x64-osx
+          - triplet: x64-osx-openrct2
     steps:
       # needed for vcpkg.json
       - name: Checkout
@@ -59,6 +59,8 @@ jobs:
         with:
           vcpkgGitCommitId: '${{ env.VCPKG_COMMIT_HASH }}'
           runVcpkgInstall: true
+          # needed for --overlay-triplets option
+          runVcpkgFormatString: '[`install`, `--recurse`, `--clean-after-build`, `--x-install-root`, `$[env.VCPKG_INSTALLED_DIR]`, `--overlay-triplets=.`, `--triplet`, `$[env.VCPKG_DEFAULT_TRIPLET]`]'
       - name: Zip stuff
         run: |
           pushd ${{ github.workspace }}/vcpkg/installed/${{ matrix.triplet }}
