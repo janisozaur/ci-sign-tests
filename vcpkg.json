@@ -1,0 +1,9 @@
+{
+    "name": "openrct2-dependencies",
+    "version-string": "11",
+    "description": "Dependencies for OpenRCT2",
+    "dependencies": [
+        "libpng"
+    ],
+    "builtin-baseline":"11ed79186fe850bd3a98cfbf1854514d2b3070a2"
+}
