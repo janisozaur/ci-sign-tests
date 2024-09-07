@@ -38,6 +38,7 @@ jobs:
       matrix:
         include:
           - triplet: x64-osx-openrct2
+          - triplet: x64-osx
     steps:
       # needed for vcpkg.json
       - name: Checkout
